@@ -3,6 +3,7 @@ package com.cornea.management.controller;
 import com.cornea.management.dto.ApiResponse;
 import com.cornea.management.entity.MedicalImage;
 import com.cornea.management.service.MedicalImageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
@@ -12,7 +13,16 @@ import java.util.List;
 @RequestMapping("/api/images")
 public class MedicalImageController {
 
-    private final MedicalImageService imageService = new MedicalImageService();
+    private final MedicalImageService imageService;
+
+    public MedicalImageController() {
+        this.imageService = new MedicalImageService();
+    }
+
+    @Autowired
+    public MedicalImageController(MedicalImageService imageService) {
+        this.imageService = imageService;
+    }
 
     @PostMapping
     public ApiResponse<MedicalImage> upload(@RequestBody MedicalImage image) throws SQLException {

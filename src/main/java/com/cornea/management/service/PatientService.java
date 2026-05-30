@@ -2,15 +2,27 @@ package com.cornea.management.service;
 
 import com.cornea.management.dao.PatientDAO;
 import com.cornea.management.entity.Patient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+@Service
 public class PatientService {
 
-    private final PatientDAO patientDAO = new PatientDAO();
+    private final PatientDAO patientDAO;
+
+    public PatientService() {
+        this.patientDAO = new PatientDAO();
+    }
+
+    @Autowired
+    public PatientService(PatientDAO patientDAO) {
+        this.patientDAO = patientDAO;
+    }
 
     public Patient registerPatient(Patient patient) throws SQLException {
         if (patient.getPatientId() == null || patient.getPatientId().isBlank()) {
@@ -27,18 +39,18 @@ public class PatientService {
     }
 
     public Patient updatePatient(Patient patient) throws SQLException {
-        if (!patientDAO.exists(patient.getPatientId())) {
+        int affected = patientDAO.update(patient);
+        if (affected == 0) {
             throw new IllegalArgumentException("Patient not found: " + patient.getPatientId());
         }
-        patientDAO.update(patient);
         return patient;
     }
 
     public void deletePatient(String patientId) throws SQLException {
-        if (!patientDAO.exists(patientId)) {
+        int affected = patientDAO.delete(patientId);
+        if (affected == 0) {
             throw new IllegalArgumentException("Patient not found: " + patientId);
         }
-        patientDAO.delete(patientId);
     }
 
     public Optional<Patient> getPatientById(String patientId) throws SQLException {

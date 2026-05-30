@@ -4,15 +4,29 @@ import com.cornea.management.dao.CornealExamDAO;
 import com.cornea.management.entity.BiomechanicalParams;
 import com.cornea.management.entity.CornealExam;
 import com.cornea.management.entity.CornealTopography;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
+@Service
 public class CornealExamService {
 
-    private final CornealExamDAO examDAO = new CornealExamDAO();
-    private final PatientService patientService = new PatientService();
+    private final CornealExamDAO examDAO;
+    private final PatientService patientService;
+
+    public CornealExamService() {
+        this.examDAO = new CornealExamDAO();
+        this.patientService = new PatientService();
+    }
+
+    @Autowired
+    public CornealExamService(CornealExamDAO examDAO, PatientService patientService) {
+        this.examDAO = examDAO;
+        this.patientService = patientService;
+    }
 
     public CornealExam createExam(CornealExam exam) throws SQLException {
         if (exam.getPatientId() == null || !patientService.patientExists(exam.getPatientId())) {
@@ -34,10 +48,10 @@ public class CornealExamService {
     public CornealExam updateExam(CornealExam exam) throws SQLException {
         examDAO.update(exam);
         if (exam.getTopography() != null) {
-            examDAO.updateTopography(exam.getTopography());
+            examDAO.upsertTopography(exam.getTopography());
         }
         if (exam.getBiomechanics() != null) {
-            examDAO.updateBiomechanics(exam.getBiomechanics());
+            examDAO.upsertBiomechanics(exam.getBiomechanics());
         }
         return examDAO.findById(exam.getExamId()).orElseThrow();
     }

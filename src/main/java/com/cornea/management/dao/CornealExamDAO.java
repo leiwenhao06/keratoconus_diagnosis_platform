@@ -4,13 +4,14 @@ import com.cornea.management.config.DatabaseConfig;
 import com.cornea.management.entity.BiomechanicalParams;
 import com.cornea.management.entity.CornealExam;
 import com.cornea.management.entity.CornealTopography;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
+@Repository
 public class CornealExamDAO {
 
     // ==================== Exam CRUD ====================
@@ -100,11 +101,17 @@ public class CornealExamDAO {
             ps.setString(1, patientId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    CornealExam exam = mapExamRow(rs);
-                    exam.setTopography(findTopographyByExamId(exam.getExamId()).orElse(null));
-                    exam.setBiomechanics(findBiomechanicsByExamId(exam.getExamId()).orElse(null));
-                    list.add(exam);
+                    list.add(mapExamRow(rs));
                 }
+            }
+        }
+        if (!list.isEmpty()) {
+            List<Integer> examIds = list.stream().map(CornealExam::getExamId).collect(Collectors.toList());
+            Map<Integer, CornealTopography> topoMap = findTopographyByExamIds(examIds);
+            Map<Integer, BiomechanicalParams> bioMap = findBiomechanicsByExamIds(examIds);
+            for (CornealExam exam : list) {
+                exam.setTopography(topoMap.get(exam.getExamId()));
+                exam.setBiomechanics(bioMap.get(exam.getExamId()));
             }
         }
         return list;
@@ -141,6 +148,25 @@ public class CornealExamDAO {
         }
     }
 
+    public void upsertTopography(CornealTopography topo) throws SQLException {
+        if (findTopographyByExamId(topo.getExamId()).isPresent()) {
+            updateTopography(topo);
+        } else {
+            String sql = "INSERT INTO corneal_topography (exam_id, front_rf, front_rs, front_rm, " +
+                    "front_k1, front_k2, front_km, front_q_val, front_rper, front_rmin, front_axis, front_astig, " +
+                    "back_rf, back_rs, back_rm, back_k1, back_k2, back_km, back_q_val, back_rper, back_rmin, back_axis, back_astig, " +
+                    "pupil_center_pachy_x, pupil_center_pachy_y, pachy_apex_x, pachy_apex_y, " +
+                    "thinnest_locat_pachy_x, thinnest_locat_pachy_y, k_max_pachy_x, k_max_pachy_y, " +
+                    "cornea_volume, chamber_volume, angle, ac_depth, pupil_dia, iop, lens_th) " +
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            try (Connection conn = DatabaseConfig.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                setTopographyParams(ps, topo);
+                ps.executeUpdate();
+            }
+        }
+    }
+
     public Optional<CornealTopography> findTopographyByExamId(int examId) throws SQLException {
         String sql = "SELECT * FROM corneal_topography WHERE exam_id=?";
         try (Connection conn = DatabaseConfig.getConnection();
@@ -151,6 +177,26 @@ public class CornealExamDAO {
                 return Optional.of(mapTopographyRow(rs));
             }
         }
+    }
+
+    private Map<Integer, CornealTopography> findTopographyByExamIds(List<Integer> examIds) throws SQLException {
+        if (examIds.isEmpty()) return Collections.emptyMap();
+        String placeholders = examIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT * FROM corneal_topography WHERE exam_id IN (" + placeholders + ")";
+        Map<Integer, CornealTopography> map = new HashMap<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < examIds.size(); i++) {
+                ps.setInt(i + 1, examIds.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    CornealTopography topo = mapTopographyRow(rs);
+                    map.put(topo.getExamId(), topo);
+                }
+            }
+        }
+        return map;
     }
 
     // ==================== Biomechanics ====================
@@ -175,6 +221,20 @@ public class CornealExamDAO {
         }
     }
 
+    public void upsertBiomechanics(BiomechanicalParams bio) throws SQLException {
+        if (findBiomechanicsByExamId(bio.getExamId()).isPresent()) {
+            updateBiomechanics(bio);
+        } else {
+            String sql = "INSERT INTO biomechanical_params (exam_id, ccbi, ctbi, is_value, sp_a1, " +
+                    "integr_radius, arth, da_ratio, ssi) VALUES (?,?,?,?,?,?,?,?,?)";
+            try (Connection conn = DatabaseConfig.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                setBiomechanicsParams(ps, bio);
+                ps.executeUpdate();
+            }
+        }
+    }
+
     public Optional<BiomechanicalParams> findBiomechanicsByExamId(int examId) throws SQLException {
         String sql = "SELECT * FROM biomechanical_params WHERE exam_id=?";
         try (Connection conn = DatabaseConfig.getConnection();
@@ -185,6 +245,26 @@ public class CornealExamDAO {
                 return Optional.of(mapBiomechanicsRow(rs));
             }
         }
+    }
+
+    private Map<Integer, BiomechanicalParams> findBiomechanicsByExamIds(List<Integer> examIds) throws SQLException {
+        if (examIds.isEmpty()) return Collections.emptyMap();
+        String placeholders = examIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT * FROM biomechanical_params WHERE exam_id IN (" + placeholders + ")";
+        Map<Integer, BiomechanicalParams> map = new HashMap<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < examIds.size(); i++) {
+                ps.setInt(i + 1, examIds.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    BiomechanicalParams bio = mapBiomechanicsRow(rs);
+                    map.put(bio.getExamId(), bio);
+                }
+            }
+        }
+        return map;
     }
 
     // ==================== Helper ====================

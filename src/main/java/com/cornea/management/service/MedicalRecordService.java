@@ -2,16 +2,30 @@ package com.cornea.management.service;
 
 import com.cornea.management.dao.MedicalRecordDAO;
 import com.cornea.management.entity.MedicalRecord;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+@Service
 public class MedicalRecordService {
 
-    private final MedicalRecordDAO recordDAO = new MedicalRecordDAO();
-    private final PatientService patientService = new PatientService();
+    private final MedicalRecordDAO recordDAO;
+    private final PatientService patientService;
+
+    public MedicalRecordService() {
+        this.recordDAO = new MedicalRecordDAO();
+        this.patientService = new PatientService();
+    }
+
+    @Autowired
+    public MedicalRecordService(MedicalRecordDAO recordDAO, PatientService patientService) {
+        this.recordDAO = recordDAO;
+        this.patientService = patientService;
+    }
 
     public MedicalRecord createRecord(MedicalRecord record) throws SQLException {
         if (!patientService.patientExists(record.getPatientId())) {

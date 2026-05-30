@@ -3,6 +3,7 @@ package com.cornea.management.controller;
 import com.cornea.management.dto.ApiResponse;
 import com.cornea.management.entity.MedicalRecord;
 import com.cornea.management.service.MedicalRecordService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
@@ -13,7 +14,16 @@ import java.util.Optional;
 @RequestMapping("/api/records")
 public class MedicalRecordController {
 
-    private final MedicalRecordService recordService = new MedicalRecordService();
+    private final MedicalRecordService recordService;
+
+    public MedicalRecordController() {
+        this.recordService = new MedicalRecordService();
+    }
+
+    @Autowired
+    public MedicalRecordController(MedicalRecordService recordService) {
+        this.recordService = recordService;
+    }
 
     @PostMapping
     public ApiResponse<MedicalRecord> create(@RequestBody MedicalRecord record) throws SQLException {

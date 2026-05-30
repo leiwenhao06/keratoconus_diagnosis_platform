@@ -2,6 +2,8 @@ package com.cornea.management.service;
 
 import com.cornea.management.dao.MedicalImageDAO;
 import com.cornea.management.entity.MedicalImage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,10 +13,22 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
+@Service
 public class MedicalImageService {
 
-    private final MedicalImageDAO imageDAO = new MedicalImageDAO();
-    private final PatientService patientService = new PatientService();
+    private final MedicalImageDAO imageDAO;
+    private final PatientService patientService;
+
+    public MedicalImageService() {
+        this.imageDAO = new MedicalImageDAO();
+        this.patientService = new PatientService();
+    }
+
+    @Autowired
+    public MedicalImageService(MedicalImageDAO imageDAO, PatientService patientService) {
+        this.imageDAO = imageDAO;
+        this.patientService = patientService;
+    }
 
     public MedicalImage uploadImage(MedicalImage image) throws SQLException {
         if (!patientService.patientExists(image.getPatientId())) {

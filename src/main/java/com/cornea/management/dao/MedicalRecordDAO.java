@@ -2,6 +2,7 @@ package com.cornea.management.dao;
 
 import com.cornea.management.config.DatabaseConfig;
 import com.cornea.management.entity.MedicalRecord;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class MedicalRecordDAO {
 
     public int insert(MedicalRecord record) throws SQLException {

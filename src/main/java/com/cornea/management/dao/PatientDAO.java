@@ -2,6 +2,7 @@ package com.cornea.management.dao;
 
 import com.cornea.management.config.DatabaseConfig;
 import com.cornea.management.entity.Patient;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class PatientDAO {
 
     public void insert(Patient patient) throws SQLException {
@@ -30,7 +32,7 @@ public class PatientDAO {
         }
     }
 
-    public void update(Patient patient) throws SQLException {
+    public int update(Patient patient) throws SQLException {
         String sql = "UPDATE patients SET name=?, gender=?, date_of_birth=?, age=?, " +
                 "id_card=?, contact=?, address=?, medical_history=? WHERE patient_id=?";
         try (Connection conn = DatabaseConfig.getConnection();
@@ -45,16 +47,16 @@ public class PatientDAO {
             ps.setString(7, patient.getAddress());
             ps.setString(8, patient.getMedicalHistory());
             ps.setString(9, patient.getPatientId());
-            ps.executeUpdate();
+            return ps.executeUpdate();
         }
     }
 
-    public void delete(String patientId) throws SQLException {
+    public int delete(String patientId) throws SQLException {
         String sql = "DELETE FROM patients WHERE patient_id=?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patientId);
-            ps.executeUpdate();
+            return ps.executeUpdate();
         }
     }
 

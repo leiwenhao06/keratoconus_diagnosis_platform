@@ -15,6 +15,11 @@ public class DatabaseConfig {
         try (InputStream in = DatabaseConfig.class
                 .getClassLoader()
                 .getResourceAsStream("application.properties")) {
+            if (in == null) {
+                throw new RuntimeException(
+                    "application.properties not found in classpath. " +
+                    "Please create src/main/resources/application.properties");
+            }
             Properties props = new Properties();
             props.load(in);
 

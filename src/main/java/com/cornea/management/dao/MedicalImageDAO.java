@@ -2,12 +2,14 @@ package com.cornea.management.dao;
 
 import com.cornea.management.config.DatabaseConfig;
 import com.cornea.management.entity.MedicalImage;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class MedicalImageDAO {
 
     public int insert(MedicalImage image) throws SQLException {
