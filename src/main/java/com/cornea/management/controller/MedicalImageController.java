@@ -15,10 +15,6 @@ public class MedicalImageController {
 
     private final MedicalImageService imageService;
 
-    public MedicalImageController() {
-        this.imageService = new MedicalImageService();
-    }
-
     @Autowired
     public MedicalImageController(MedicalImageService imageService) {
         this.imageService = imageService;

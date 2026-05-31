@@ -1,6 +1,7 @@
 package com.cornea.management;
 
 import com.cornea.management.config.DatabaseConfig;
+import com.cornea.management.dao.*;
 import com.cornea.management.entity.*;
 import com.cornea.management.service.*;
 
@@ -17,10 +18,15 @@ import java.util.Scanner;
  */
 public class Main {
 
-    private static final PatientService patientService = new PatientService();
-    private static final CornealExamService examService = new CornealExamService();
-    private static final MedicalImageService imageService = new MedicalImageService();
-    private static final MedicalRecordService recordService = new MedicalRecordService();
+    private static final PatientDAO patientDAO = new PatientDAO();
+    private static final CornealExamDAO examDAO = new CornealExamDAO();
+    private static final MedicalImageDAO imageDAO = new MedicalImageDAO();
+    private static final MedicalRecordDAO recordDAO = new MedicalRecordDAO();
+
+    private static final PatientService patientService = new PatientService(patientDAO);
+    private static final CornealExamService examService = new CornealExamService(examDAO, patientService);
+    private static final MedicalImageService imageService = new MedicalImageService(imageDAO, patientService);
+    private static final MedicalRecordService recordService = new MedicalRecordService(recordDAO, patientService);
     private static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {

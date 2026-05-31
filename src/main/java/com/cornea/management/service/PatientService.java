@@ -15,10 +15,6 @@ public class PatientService {
 
     private final PatientDAO patientDAO;
 
-    public PatientService() {
-        this.patientDAO = new PatientDAO();
-    }
-
     @Autowired
     public PatientService(PatientDAO patientDAO) {
         this.patientDAO = patientDAO;

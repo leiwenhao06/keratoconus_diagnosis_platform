@@ -24,7 +24,7 @@ public class CornealExamDAO {
                 int examId;
                 try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                     ps.setString(1, exam.getPatientId());
-                    ps.setDate(2, Date.valueOf(exam.getExamDate()));
+                    ps.setDate(2, java.sql.Date.valueOf(exam.getExamDate()));
                     ps.setString(3, exam.getEyeSide());
                     ps.setString(4, exam.getExamType());
                     ps.setString(5, exam.getDiagnosis());
@@ -60,7 +60,7 @@ public class CornealExamDAO {
         String sql = "UPDATE corneal_exams SET exam_date=?, eye_side=?, exam_type=?, diagnosis=? WHERE exam_id=?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setDate(1, Date.valueOf(exam.getExamDate()));
+            ps.setDate(1, java.sql.Date.valueOf(exam.getExamDate()));
             ps.setString(2, exam.getEyeSide());
             ps.setString(3, exam.getExamType());
             ps.setString(4, exam.getDiagnosis());

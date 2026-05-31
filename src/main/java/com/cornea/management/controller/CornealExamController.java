@@ -16,10 +16,6 @@ public class CornealExamController {
 
     private final CornealExamService examService;
 
-    public CornealExamController() {
-        this.examService = new CornealExamService();
-    }
-
     @Autowired
     public CornealExamController(CornealExamService examService) {
         this.examService = examService;

@@ -17,11 +17,6 @@ public class CornealExamService {
     private final CornealExamDAO examDAO;
     private final PatientService patientService;
 
-    public CornealExamService() {
-        this.examDAO = new CornealExamDAO();
-        this.patientService = new PatientService();
-    }
-
     @Autowired
     public CornealExamService(CornealExamDAO examDAO, PatientService patientService) {
         this.examDAO = examDAO;
@@ -48,10 +43,10 @@ public class CornealExamService {
     public CornealExam updateExam(CornealExam exam) throws SQLException {
         examDAO.update(exam);
         if (exam.getTopography() != null) {
-            examDAO.upsertTopography(exam.getTopography());
+            saveTopography(exam.getExamId(), exam.getTopography());
         }
         if (exam.getBiomechanics() != null) {
-            examDAO.upsertBiomechanics(exam.getBiomechanics());
+            saveBiomechanics(exam.getExamId(), exam.getBiomechanics());
         }
         return examDAO.findById(exam.getExamId()).orElseThrow();
     }

@@ -16,10 +16,6 @@ public class PatientController {
 
     private final PatientService patientService;
 
-    public PatientController() {
-        this.patientService = new PatientService();
-    }
-
     @Autowired
     public PatientController(PatientService patientService) {
         this.patientService = patientService;

@@ -19,11 +19,6 @@ public class MedicalImageService {
     private final MedicalImageDAO imageDAO;
     private final PatientService patientService;
 
-    public MedicalImageService() {
-        this.imageDAO = new MedicalImageDAO();
-        this.patientService = new PatientService();
-    }
-
     @Autowired
     public MedicalImageService(MedicalImageDAO imageDAO, PatientService patientService) {
         this.imageDAO = imageDAO;

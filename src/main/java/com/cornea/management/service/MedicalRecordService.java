@@ -16,11 +16,6 @@ public class MedicalRecordService {
     private final MedicalRecordDAO recordDAO;
     private final PatientService patientService;
 
-    public MedicalRecordService() {
-        this.recordDAO = new MedicalRecordDAO();
-        this.patientService = new PatientService();
-    }
-
     @Autowired
     public MedicalRecordService(MedicalRecordDAO recordDAO, PatientService patientService) {
         this.recordDAO = recordDAO;

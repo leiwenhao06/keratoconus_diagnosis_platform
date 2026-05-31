@@ -65,38 +65,42 @@ public class MedicalImageDAO {
             ps.setInt(1, imageId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
-                return Optional.of(mapRow(rs));
+                return Optional.of(mapRowFull(rs));
             }
         }
     }
 
     public List<MedicalImage> findByPatientId(String patientId) throws SQLException {
-        String sql = "SELECT * FROM medical_images WHERE patient_id=? ORDER BY upload_date DESC";
+        String sql = "SELECT image_id, patient_id, exam_id, image_type, eye_side, " +
+                "image_path, file_name, file_size, upload_date " +
+                "FROM medical_images WHERE patient_id=? ORDER BY upload_date DESC";
         List<MedicalImage> list = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patientId);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) list.add(mapRow(rs));
+                while (rs.next()) list.add(mapRowLight(rs));
             }
         }
         return list;
     }
 
     public List<MedicalImage> findByExamId(int examId) throws SQLException {
-        String sql = "SELECT * FROM medical_images WHERE exam_id=? ORDER BY upload_date DESC";
+        String sql = "SELECT image_id, patient_id, exam_id, image_type, eye_side, " +
+                "image_path, file_name, file_size, upload_date " +
+                "FROM medical_images WHERE exam_id=? ORDER BY upload_date DESC";
         List<MedicalImage> list = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, examId);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) list.add(mapRow(rs));
+                while (rs.next()) list.add(mapRowLight(rs));
             }
         }
         return list;
     }
 
-    private MedicalImage mapRow(ResultSet rs) throws SQLException {
+    private MedicalImage mapRowLight(ResultSet rs) throws SQLException {
         MedicalImage img = new MedicalImage();
         img.setImageId(rs.getInt("image_id"));
         img.setPatientId(rs.getString("patient_id"));
@@ -105,15 +109,20 @@ public class MedicalImageDAO {
         img.setImageType(rs.getString("image_type"));
         img.setEyeSide(rs.getString("eye_side"));
         img.setImagePath(rs.getString("image_path"));
-        Blob blob = rs.getBlob("image_data");
-        if (blob != null) {
-            img.setImageData(blob.getBytes(1, (int) blob.length()));
-        }
         img.setFileName(rs.getString("file_name"));
         long fileSize = rs.getLong("file_size");
         if (!rs.wasNull()) img.setFileSize(fileSize);
         Timestamp ud = rs.getTimestamp("upload_date");
         if (ud != null) img.setUploadDate(ud.toLocalDateTime());
+        return img;
+    }
+
+    private MedicalImage mapRowFull(ResultSet rs) throws SQLException {
+        MedicalImage img = mapRowLight(rs);
+        Blob blob = rs.getBlob("image_data");
+        if (blob != null) {
+            img.setImageData(blob.getBytes(1, (int) blob.length()));
+        }
         return img;
     }
 }

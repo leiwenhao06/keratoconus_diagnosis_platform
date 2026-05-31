@@ -16,10 +16,6 @@ public class MedicalRecordController {
 
     private final MedicalRecordService recordService;
 
-    public MedicalRecordController() {
-        this.recordService = new MedicalRecordService();
-    }
-
     @Autowired
     public MedicalRecordController(MedicalRecordService recordService) {
         this.recordService = recordService;
