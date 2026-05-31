@@ -66,9 +66,9 @@ export default function PatientForm() {
           name="patientId"
           label="患者 ID"
           rules={[{ required: true, message: '请输入患者 ID' }]}
-          extra="建议格式：P + 8位日期，如 P20260530"
+          extra="建议格式：P + 日期 + 三位序号，如 P20260530001"
         >
-          <Input placeholder="P20260530" disabled={isEdit} />
+          <Input disabled={isEdit} />
         </Form.Item>
 
         <Form.Item
