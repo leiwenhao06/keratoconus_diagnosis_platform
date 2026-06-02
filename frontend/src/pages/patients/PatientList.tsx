@@ -17,7 +17,9 @@ export default function PatientList() {
     setLoading(true);
     try {
       const data = await patientApi.list(name);
-      setPatients(data);
+      setPatients(data ?? []);
+    } catch {
+      setPatients([]);
     } finally {
       setLoading(false);
     }
@@ -32,9 +34,13 @@ export default function PatientList() {
   }, [fetchPatients, searchName]);
 
   const handleDelete = async (patientId: string) => {
-    await patientApi.delete(patientId);
-    message.success('患者已删除');
-    fetchPatients(searchName || undefined);
+    try {
+      await patientApi.delete(patientId);
+      message.success('患者已删除');
+      fetchPatients(searchName || undefined);
+    } catch {
+      // 错误消息已由拦截器处理
+    }
   };
 
   const columns: ColumnsType<Patient> = [

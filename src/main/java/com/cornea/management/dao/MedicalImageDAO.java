@@ -1,9 +1,9 @@
 package com.cornea.management.dao;
 
-import com.cornea.management.config.DatabaseConfig;
 import com.cornea.management.entity.MedicalImage;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,10 +12,16 @@ import java.util.Optional;
 @Repository
 public class MedicalImageDAO {
 
+    private final DataSource dataSource;
+
+    public MedicalImageDAO(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     public int insert(MedicalImage image) throws SQLException {
         String sql = "INSERT INTO medical_images (patient_id, exam_id, image_type, eye_side, " +
                 "image_path, image_data, file_name, file_size) VALUES (?,?,?,?,?,?,?,?)";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, image.getPatientId());
             if (image.getExamId() != null) ps.setInt(2, image.getExamId());
@@ -41,7 +47,7 @@ public class MedicalImageDAO {
 
     public void updatePath(int imageId, String path) throws SQLException {
         String sql = "UPDATE medical_images SET image_path=? WHERE image_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, path);
             ps.setInt(2, imageId);
@@ -51,7 +57,7 @@ public class MedicalImageDAO {
 
     public void delete(int imageId) throws SQLException {
         String sql = "DELETE FROM medical_images WHERE image_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, imageId);
             ps.executeUpdate();
@@ -60,9 +66,21 @@ public class MedicalImageDAO {
 
     public Optional<MedicalImage> findById(int imageId) throws SQLException {
         String sql = "SELECT * FROM medical_images WHERE image_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, imageId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                return Optional.of(mapRowFull(rs));
+            }
+        }
+    }
+
+    public Optional<MedicalImage> findByImagePath(String imagePath) throws SQLException {
+        String sql = "SELECT * FROM medical_images WHERE image_path=?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, imagePath);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
                 return Optional.of(mapRowFull(rs));
@@ -75,7 +93,7 @@ public class MedicalImageDAO {
                 "image_path, file_name, file_size, upload_date " +
                 "FROM medical_images WHERE patient_id=? ORDER BY upload_date DESC";
         List<MedicalImage> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patientId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -90,7 +108,7 @@ public class MedicalImageDAO {
                 "image_path, file_name, file_size, upload_date " +
                 "FROM medical_images WHERE exam_id=? ORDER BY upload_date DESC";
         List<MedicalImage> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, examId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -121,7 +139,11 @@ public class MedicalImageDAO {
         MedicalImage img = mapRowLight(rs);
         Blob blob = rs.getBlob("image_data");
         if (blob != null) {
-            img.setImageData(blob.getBytes(1, (int) blob.length()));
+            long length = blob.length();
+            if (length > Integer.MAX_VALUE) {
+                throw new SQLException("Image data too large to read into memory: " + length + " bytes");
+            }
+            img.setImageData(blob.getBytes(1, (int) length));
         }
         return img;
     }

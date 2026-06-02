@@ -18,21 +18,23 @@ export default function PatientForm() {
       patientApi.getById(patientId).then(patient => {
         form.setFieldsValue({
           ...patient,
-          dateOfBirth: patient.dateOfBirth ? dayjs(patient.dateOfBirth, 'YYYY-MM-DD') : undefined,
+          dateOfBirth: patient?.dateOfBirth ? dayjs(patient.dateOfBirth, 'YYYY-MM-DD') : undefined,
         });
+      }).catch(() => {
+        message.error('加载患者信息失败');
       });
     }
   }, [patientId, isEdit, form]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    const payload = {
-      ...values,
-      dateOfBirth: datePickerToStr(values.dateOfBirth),
-    };
-
     setLoading(true);
     try {
+      const values = await form.validateFields();
+      const payload = {
+        ...values,
+        dateOfBirth: datePickerToStr(values.dateOfBirth),
+      };
+
       if (isEdit) {
         await patientApi.update(patientId, payload);
         message.success('患者信息已更新');
@@ -41,6 +43,12 @@ export default function PatientForm() {
         message.success('患者已创建');
       }
       navigate('/patients');
+    } catch (err: any) {
+      if (err?.errorFields) {
+        // Ant Design form validation error - already shown inline
+        return;
+      }
+      // 其他错误已由拦截器处理
     } finally {
       setLoading(false);
     }
@@ -110,12 +118,38 @@ export default function PatientForm() {
           <InputNumber min={0} max={150} style={{ width: '100%' }} placeholder="0-150" />
         </Form.Item>
 
-        <Form.Item name="idCard" label="身份证号">
+        <Form.Item
+          name="idCard"
+          label="身份证号"
+          rules={[
+            {
+              validator: (_, value) => {
+                if (value && !/^\d{17}[\dXx]$/.test(value)) {
+                  return Promise.reject('身份证号必须为18位，最后一位可为数字或字母X');
+                }
+                return Promise.resolve();
+              },
+            },
+          ]}
+        >
           <Input placeholder="18位身份证号" maxLength={18} />
         </Form.Item>
 
-        <Form.Item name="contact" label="联系方式">
-          <Input placeholder="手机号码" />
+        <Form.Item
+          name="contact"
+          label="联系方式"
+          rules={[
+            {
+              validator: (_, value) => {
+                if (value && !/^\d{11}$/.test(value)) {
+                  return Promise.reject('手机号码必须为11位数字');
+                }
+                return Promise.resolve();
+              },
+            },
+          ]}
+        >
+          <Input placeholder="手机号码" maxLength={11} />
         </Form.Item>
 
         <Form.Item name="address" label="地址">

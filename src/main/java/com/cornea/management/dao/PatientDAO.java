@@ -1,9 +1,9 @@
 package com.cornea.management.dao;
 
-import com.cornea.management.config.DatabaseConfig;
 import com.cornea.management.entity.Patient;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,10 +13,16 @@ import java.util.Optional;
 @Repository
 public class PatientDAO {
 
+    private final DataSource dataSource;
+
+    public PatientDAO(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     public void insert(Patient patient) throws SQLException {
         String sql = "INSERT INTO patients (patient_id, name, gender, date_of_birth, age, " +
                 "id_card, contact, address, medical_history) VALUES (?,?,?,?,?,?,?,?,?)";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patient.getPatientId());
             ps.setString(2, patient.getName());
@@ -35,7 +41,7 @@ public class PatientDAO {
     public int update(Patient patient) throws SQLException {
         String sql = "UPDATE patients SET name=?, gender=?, date_of_birth=?, age=?, " +
                 "id_card=?, contact=?, address=?, medical_history=? WHERE patient_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patient.getName());
             ps.setString(2, patient.getGender());
@@ -53,7 +59,7 @@ public class PatientDAO {
 
     public int delete(String patientId) throws SQLException {
         String sql = "DELETE FROM patients WHERE patient_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patientId);
             return ps.executeUpdate();
@@ -62,7 +68,7 @@ public class PatientDAO {
 
     public Optional<Patient> findById(String patientId) throws SQLException {
         String sql = "SELECT * FROM patients WHERE patient_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patientId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -75,7 +81,7 @@ public class PatientDAO {
     public List<Patient> findAll() throws SQLException {
         String sql = "SELECT * FROM patients ORDER BY created_at DESC";
         List<Patient> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) list.add(mapRow(rs));
@@ -86,7 +92,7 @@ public class PatientDAO {
     public List<Patient> searchByName(String keyword) throws SQLException {
         String sql = "SELECT * FROM patients WHERE name LIKE ? ORDER BY created_at DESC";
         List<Patient> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, "%" + keyword + "%");
             try (ResultSet rs = ps.executeQuery()) {
@@ -98,7 +104,7 @@ public class PatientDAO {
 
     public boolean exists(String patientId) throws SQLException {
         String sql = "SELECT 1 FROM patients WHERE patient_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patientId);
             try (ResultSet rs = ps.executeQuery()) {

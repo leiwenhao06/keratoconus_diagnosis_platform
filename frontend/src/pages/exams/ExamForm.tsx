@@ -25,44 +25,50 @@ export default function ExamForm() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    const payload: any = {
-      patientId,
-      examDate: datePickerToStr(values.examDate),
-      eyeSide: values.eyeSide,
-      examType: values.examType,
-      diagnosis: values.diagnosis || undefined,
-    };
-
-    if (includeTopography) {
-      payload.topography = {};
-      const topoFields = [
-        'frontRf','frontRs','frontRm','frontK1','frontK2','frontKm',
-        'frontQVal','frontRper','frontRmin','frontAxis','frontAstig',
-        'backRf','backRs','backRm','backK1','backK2','backKm',
-        'backQVal','backRper','backRmin','backAxis','backAstig',
-        'pupilCenterPachyX','pupilCenterPachyY','pachyApexX','pachyApexY',
-        'thinnestLocatPachyX','thinnestLocatPachyY','kMaxPachyX','kMaxPachyY',
-        'corneaVolume','chamberVolume','angle','acDepth','pupilDia','iop','lensTh',
-      ];
-      topoFields.forEach(f => {
-        if (values[f] != null) payload.topography[f] = values[f];
-      });
-    }
-
-    if (includeBiomechanics) {
-      payload.biomechanics = {};
-      const bioFields = ['ccbi','ctbi','isValue','spA1','integrRadius','arth','daRatio','ssi'];
-      bioFields.forEach(f => {
-        if (values[f] != null) payload.biomechanics[f] = values[f];
-      });
-    }
-
     setLoading(true);
     try {
+      const values = await form.validateFields();
+      const payload: any = {
+        patientId,
+        examDate: datePickerToStr(values.examDate),
+        eyeSide: values.eyeSide,
+        examType: values.examType,
+        diagnosis: values.diagnosis || undefined,
+      };
+
+      if (includeTopography) {
+        payload.topography = {};
+        const topoFields = [
+          'frontRf','frontRs','frontRm','frontK1','frontK2','frontKm',
+          'frontQVal','frontRper','frontRmin','frontAxis','frontAstig',
+          'backRf','backRs','backRm','backK1','backK2','backKm',
+          'backQVal','backRper','backRmin','backAxis','backAstig',
+          'pupilCenterPachyX','pupilCenterPachyY','pachyApexX','pachyApexY',
+          'thinnestLocatPachyX','thinnestLocatPachyY','kMaxPachyX','kMaxPachyY',
+          'corneaVolume','chamberVolume','angle','acDepth','pupilDia','iop','lensTh',
+        ];
+        topoFields.forEach(f => {
+          if (values[f] != null) payload.topography[f] = values[f];
+        });
+      }
+
+      if (includeBiomechanics) {
+        payload.biomechanics = {};
+        const bioFields = ['ccbi','ctbi','isValue','spA1','integrRadius','arth','daRatio','ssi'];
+        bioFields.forEach(f => {
+          if (values[f] != null) payload.biomechanics[f] = values[f];
+        });
+      }
+
       await examApi.create(payload);
       message.success('检查记录已创建');
       navigate(`/patients/${patientId}`);
+    } catch (err: any) {
+      if (err?.errorFields) {
+        // Ant Design form validation error - already shown inline
+        return;
+      }
+      // 其他错误已由拦截器处理
     } finally {
       setLoading(false);
     }

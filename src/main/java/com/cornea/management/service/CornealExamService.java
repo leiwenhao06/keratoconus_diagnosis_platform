@@ -4,8 +4,11 @@ import com.cornea.management.dao.CornealExamDAO;
 import com.cornea.management.entity.BiomechanicalParams;
 import com.cornea.management.entity.CornealExam;
 import com.cornea.management.entity.CornealTopography;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -13,6 +16,8 @@ import java.util.Optional;
 
 @Service
 public class CornealExamService {
+
+    private static final Logger log = LoggerFactory.getLogger(CornealExamService.class);
 
     private final CornealExamDAO examDAO;
     private final PatientService patientService;
@@ -37,10 +42,16 @@ public class CornealExamService {
             throw new IllegalArgumentException("Exam type is required");
         }
         int examId = examDAO.insert(exam);
-        return examDAO.findById(examId).orElseThrow();
+        log.info("Exam created: examId={}, patientId={}, type={}", examId, exam.getPatientId(), exam.getExamType());
+        return examDAO.findById(examId)
+                .orElseThrow(() -> new IllegalStateException("Failed to retrieve created exam: " + examId));
     }
 
+    @Transactional(rollbackFor = SQLException.class)
     public CornealExam updateExam(CornealExam exam) throws SQLException {
+        if (exam.getExamDate() == null) {
+            throw new IllegalArgumentException("Exam date is required");
+        }
         examDAO.update(exam);
         if (exam.getTopography() != null) {
             saveTopography(exam.getExamId(), exam.getTopography());
@@ -48,11 +59,15 @@ public class CornealExamService {
         if (exam.getBiomechanics() != null) {
             saveBiomechanics(exam.getExamId(), exam.getBiomechanics());
         }
-        return examDAO.findById(exam.getExamId()).orElseThrow();
+        log.info("Exam updated: examId={}", exam.getExamId());
+        return examDAO.findById(exam.getExamId())
+                .orElseThrow(() -> new IllegalStateException("Failed to retrieve updated exam: " + exam.getExamId()));
     }
 
+    @Transactional(rollbackFor = SQLException.class)
     public void deleteExam(int examId) throws SQLException {
         examDAO.delete(examId);
+        log.info("Exam deleted: examId={}", examId);
     }
 
     public Optional<CornealExam> getExamById(int examId) throws SQLException {

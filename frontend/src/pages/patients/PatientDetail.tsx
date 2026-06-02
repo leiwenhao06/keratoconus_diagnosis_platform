@@ -2,17 +2,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Descriptions, Tabs, Button, Space, Spin, message, Popconfirm,
-  Tag, Collapse, List, Empty, Tooltip,
+  Tag, Collapse, List, Empty, Tooltip, Upload, Modal, Select, Radio, Image,
 } from 'antd';
 import {
   EditOutlined, ArrowLeftOutlined, PlusOutlined,
   DeleteOutlined, EyeOutlined, ExperimentOutlined,
-  FileTextOutlined, PictureOutlined,
+  FileTextOutlined, PictureOutlined, InboxOutlined,
 } from '@ant-design/icons';
 import { patientApi } from '../../api/patients';
 import { examApi } from '../../api/exams';
 import { recordApi } from '../../api/records';
-import { imageApi } from '../../api/images';
+import { imageApi, getImageUrl } from '../../api/images';
 import type { Patient, CornealExam, MedicalRecord, MedicalImage } from '../../types';
 import {
   GENDER_MAP, EYE_SIDE_MAP, EXAM_TYPE_MAP,
@@ -32,10 +32,10 @@ export default function PatientDetail() {
     if (!patientId) return;
     setLoading(true);
     Promise.all([
-      patientApi.getById(patientId),
-      examApi.listByPatient(patientId).catch(() => []),
-      recordApi.listByPatient(patientId).catch(() => []),
-      imageApi.listByPatient(patientId).catch(() => []),
+      patientApi.getById(patientId).catch(() => null),
+      examApi.listByPatient(patientId).catch(() => [] as CornealExam[]),
+      recordApi.listByPatient(patientId).catch(() => [] as MedicalRecord[]),
+      imageApi.listByPatient(patientId).catch(() => [] as MedicalImage[]),
     ]).then(([p, e, r, i]) => {
       setPatient(p);
       setExams(e);
@@ -45,21 +45,57 @@ export default function PatientDetail() {
   }, [patientId]);
 
   const handleDeleteExam = async (examId: number) => {
-    await examApi.delete(examId);
-    message.success('检查已删除');
-    setExams(prev => prev.filter(e => e.examId !== examId));
+    try {
+      await examApi.delete(examId);
+      message.success('检查已删除');
+      setExams(prev => prev.filter(e => e.examId !== examId));
+    } catch {
+      // 错误消息已由拦截器处理
+    }
   };
 
   const handleDeleteRecord = async (recordId: number) => {
-    await recordApi.delete(recordId);
-    message.success('病历已删除');
-    setRecords(prev => prev.filter(r => r.recordId !== recordId));
+    try {
+      await recordApi.delete(recordId);
+      message.success('病历已删除');
+      setRecords(prev => prev.filter(r => r.recordId !== recordId));
+    } catch {
+      // 错误消息已由拦截器处理
+    }
   };
 
   const handleDeleteImage = async (imageId: number) => {
-    await imageApi.delete(imageId);
-    message.success('影像已删除');
-    setImages(prev => prev.filter(i => i.imageId !== imageId));
+    try {
+      await imageApi.delete(imageId);
+      message.success('影像已删除');
+      setImages(prev => prev.filter(i => i.imageId !== imageId));
+    } catch {
+      // 错误消息已由拦截器处理
+    }
+  };
+
+  // ---- 图片上传 ----
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadType, setUploadType] = useState<string>('Pentacam');
+  const [uploadEyeSide, setUploadEyeSide] = useState<string>('both');
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async () => {
+    if (!uploadFile || !patientId) return;
+    setUploading(true);
+    try {
+      await imageApi.uploadFile(uploadFile, patientId, uploadType, uploadEyeSide);
+      message.success('影像上传成功');
+      setUploadModalOpen(false);
+      setUploadFile(null);
+      const list = await imageApi.listByPatient(patientId);
+      setImages(list);
+    } catch {
+      // 错误消息已由拦截器处理
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) {
@@ -313,6 +349,15 @@ export default function PatientDetail() {
 
   const imagesTab = (
     <div>
+      <div style={{ marginBottom: 16 }}>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setUploadModalOpen(true)}
+        >
+          上传影像
+        </Button>
+      </div>
       {images.length === 0 ? (
         <Empty description="暂无影像记录" />
       ) : (
@@ -339,21 +384,87 @@ export default function PatientDetail() {
                   </Popconfirm>
                 }
               >
-                <div style={{ fontSize: 12, color: '#888' }}>
+                {img.imagePath ? (
+                  <Image
+                    src={getImageUrl(img.imagePath)}
+                    alt={img.fileName || '医学影像'}
+                    style={{ maxHeight: 200, objectFit: 'cover' }}
+                    fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                  />
+                ) : (
+                  <div style={{
+                    height: 120, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', color: '#bbb', background: '#fafafa',
+                  }}>
+                    暂无预览
+                  </div>
+                )}
+                <div style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
                   <div>文件名：{img.fileName || '-'}</div>
-                  <div>大小：{img.fileSize ? `${(img.fileSize / 1024).toFixed(1)} KB` : '-'}</div>
+                  <div>大小：{img.fileSize != null ? `${(img.fileSize / 1024).toFixed(1)} KB` : '-'}</div>
                   <div>上传时间：{formatDate(img.uploadDate)}</div>
-                  {img.imagePath && (
-                    <div style={{ marginTop: 4 }}>
-                      路径：{img.imagePath}
-                    </div>
-                  )}
                 </div>
               </Card>
             </List.Item>
           )}
         />
       )}
+
+      {/* 上传弹窗 */}
+      <Modal
+        title="上传医学影像"
+        open={uploadModalOpen}
+        onOk={handleUpload}
+        onCancel={() => { setUploadModalOpen(false); setUploadFile(null); }}
+        confirmLoading={uploading}
+        okText="上传"
+        cancelText="取消"
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Upload.Dragger
+            accept="image/*"
+            maxCount={1}
+            beforeUpload={(file) => {
+              setUploadFile(file);
+              return false; // 阻止自动上传
+            }}
+            onRemove={() => setUploadFile(null)}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">点击或拖拽图片文件到此区域</p>
+            <p className="ant-upload-hint">支持 PNG / JPG / BMP / GIF / WebP 格式</p>
+          </Upload.Dragger>
+
+          <div>
+            <span style={{ marginRight: 8 }}>影像类型：</span>
+            <Select
+              value={uploadType}
+              onChange={setUploadType}
+              style={{ width: 200 }}
+              options={[
+                { label: 'Pentacam 角膜地形图', value: 'Pentacam' },
+                { label: 'Corvis TBI 生物力学', value: 'Corvis_TBI' },
+                { label: 'Corvis VSR', value: 'Corvis_VSR' },
+                { label: '眼底照', value: 'Fundus' },
+                { label: '裂隙灯', value: 'Slit_Lamp' },
+                { label: 'OCT 扫描', value: 'OCT' },
+                { label: '其他', value: 'Other' },
+              ]}
+            />
+          </div>
+
+          <div>
+            <span style={{ marginRight: 8 }}>眼别：</span>
+            <Radio.Group value={uploadEyeSide} onChange={e => setUploadEyeSide(e.target.value)}>
+              <Radio.Button value="left">左眼</Radio.Button>
+              <Radio.Button value="right">右眼</Radio.Button>
+              <Radio.Button value="both">双眼</Radio.Button>
+            </Radio.Group>
+          </div>
+        </Space>
+      </Modal>
     </div>
   );
 

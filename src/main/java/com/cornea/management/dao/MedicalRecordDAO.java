@@ -1,9 +1,9 @@
 package com.cornea.management.dao;
 
-import com.cornea.management.config.DatabaseConfig;
 import com.cornea.management.entity.MedicalRecord;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,12 +13,21 @@ import java.util.Optional;
 @Repository
 public class MedicalRecordDAO {
 
+    private final DataSource dataSource;
+
+    public MedicalRecordDAO(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     public int insert(MedicalRecord record) throws SQLException {
+        if (record.getVisitDate() == null) {
+            throw new IllegalArgumentException("Visit date is required");
+        }
         String sql = "INSERT INTO medical_records (patient_id, visit_date, chief_complaint, " +
                 "present_illness, past_history, physical_exam, diagnosis, left_eye_diagnosis, " +
                 "right_eye_diagnosis, treatment_plan, doctor_notes, doctor_name) " +
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, record.getPatientId());
             ps.setDate(2, Date.valueOf(record.getVisitDate()));
@@ -41,10 +50,13 @@ public class MedicalRecordDAO {
     }
 
     public void update(MedicalRecord record) throws SQLException {
+        if (record.getVisitDate() == null) {
+            throw new IllegalArgumentException("Visit date is required for update");
+        }
         String sql = "UPDATE medical_records SET visit_date=?, chief_complaint=?, present_illness=?, " +
                 "past_history=?, physical_exam=?, diagnosis=?, left_eye_diagnosis=?, right_eye_diagnosis=?, " +
                 "treatment_plan=?, doctor_notes=?, doctor_name=? WHERE record_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(record.getVisitDate()));
             ps.setString(2, record.getChiefComplaint());
@@ -64,7 +76,7 @@ public class MedicalRecordDAO {
 
     public void delete(int recordId) throws SQLException {
         String sql = "DELETE FROM medical_records WHERE record_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, recordId);
             ps.executeUpdate();
@@ -73,7 +85,7 @@ public class MedicalRecordDAO {
 
     public Optional<MedicalRecord> findById(int recordId) throws SQLException {
         String sql = "SELECT * FROM medical_records WHERE record_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, recordId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -86,7 +98,7 @@ public class MedicalRecordDAO {
     public List<MedicalRecord> findByPatientId(String patientId) throws SQLException {
         String sql = "SELECT * FROM medical_records WHERE patient_id=? ORDER BY visit_date DESC";
         List<MedicalRecord> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patientId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -97,10 +109,13 @@ public class MedicalRecordDAO {
     }
 
     public List<MedicalRecord> findByDateRange(LocalDate from, LocalDate to) throws SQLException {
+        if (from == null || to == null) {
+            throw new IllegalArgumentException("Date range 'from' and 'to' are required");
+        }
         String sql = "SELECT mr.*, p.name FROM medical_records mr JOIN patients p ON mr.patient_id=p.patient_id " +
                 "WHERE mr.visit_date BETWEEN ? AND ? ORDER BY mr.visit_date DESC";
         List<MedicalRecord> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(from));
             ps.setDate(2, Date.valueOf(to));

@@ -1,11 +1,13 @@
 package com.cornea.management.dao;
 
-import com.cornea.management.config.DatabaseConfig;
 import com.cornea.management.entity.BiomechanicalParams;
 import com.cornea.management.entity.CornealExam;
 import com.cornea.management.entity.CornealTopography;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
@@ -14,11 +16,19 @@ import java.util.stream.Collectors;
 @Repository
 public class CornealExamDAO {
 
+    private static final Logger log = LoggerFactory.getLogger(CornealExamDAO.class);
+
+    private final DataSource dataSource;
+
+    public CornealExamDAO(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     // ==================== Exam CRUD ====================
 
     public int insert(CornealExam exam) throws SQLException {
         String sql = "INSERT INTO corneal_exams (patient_id, exam_date, eye_side, exam_type, diagnosis) VALUES (?,?,?,?,?)";
-        try (Connection conn = DatabaseConfig.getConnection()) {
+        try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 int examId;
@@ -48,6 +58,7 @@ public class CornealExamDAO {
                 conn.commit();
                 return examId;
             } catch (SQLException e) {
+                log.error("Failed to insert corneal exam, rolling back: {}", e.getMessage());
                 conn.rollback();
                 throw e;
             } finally {
@@ -57,8 +68,11 @@ public class CornealExamDAO {
     }
 
     public void update(CornealExam exam) throws SQLException {
+        if (exam.getExamDate() == null) {
+            throw new IllegalArgumentException("Exam date is required for update");
+        }
         String sql = "UPDATE corneal_exams SET exam_date=?, eye_side=?, exam_type=?, diagnosis=? WHERE exam_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, java.sql.Date.valueOf(exam.getExamDate()));
             ps.setString(2, exam.getEyeSide());
@@ -71,7 +85,7 @@ public class CornealExamDAO {
 
     public void delete(int examId) throws SQLException {
         String sql = "DELETE FROM corneal_exams WHERE exam_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, examId);
             ps.executeUpdate();
@@ -80,7 +94,7 @@ public class CornealExamDAO {
 
     public Optional<CornealExam> findById(int examId) throws SQLException {
         String sql = "SELECT * FROM corneal_exams WHERE exam_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, examId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -96,7 +110,7 @@ public class CornealExamDAO {
     public List<CornealExam> findByPatientId(String patientId) throws SQLException {
         String sql = "SELECT * FROM corneal_exams WHERE patient_id=? ORDER BY exam_date DESC";
         List<CornealExam> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, patientId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -140,7 +154,7 @@ public class CornealExamDAO {
                 "pupil_center_pachy_x=?, pupil_center_pachy_y=?, pachy_apex_x=?, pachy_apex_y=?, " +
                 "thinnest_locat_pachy_x=?, thinnest_locat_pachy_y=?, k_max_pachy_x=?, k_max_pachy_y=?, " +
                 "cornea_volume=?, chamber_volume=?, angle=?, ac_depth=?, pupil_dia=?, iop=?, lens_th=? WHERE exam_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             setTopographyParams(ps, topo);
             ps.setInt(38, topo.getExamId());
@@ -159,7 +173,7 @@ public class CornealExamDAO {
                     "thinnest_locat_pachy_x, thinnest_locat_pachy_y, k_max_pachy_x, k_max_pachy_y, " +
                     "cornea_volume, chamber_volume, angle, ac_depth, pupil_dia, iop, lens_th) " +
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            try (Connection conn = DatabaseConfig.getConnection();
+            try (Connection conn = dataSource.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 setTopographyParams(ps, topo);
                 ps.executeUpdate();
@@ -169,7 +183,7 @@ public class CornealExamDAO {
 
     public Optional<CornealTopography> findTopographyByExamId(int examId) throws SQLException {
         String sql = "SELECT * FROM corneal_topography WHERE exam_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, examId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -184,7 +198,7 @@ public class CornealExamDAO {
         String placeholders = examIds.stream().map(id -> "?").collect(Collectors.joining(","));
         String sql = "SELECT * FROM corneal_topography WHERE exam_id IN (" + placeholders + ")";
         Map<Integer, CornealTopography> map = new HashMap<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             for (int i = 0; i < examIds.size(); i++) {
                 ps.setInt(i + 1, examIds.get(i));
@@ -213,7 +227,7 @@ public class CornealExamDAO {
     public void updateBiomechanics(BiomechanicalParams bio) throws SQLException {
         String sql = "UPDATE biomechanical_params SET ccbi=?, ctbi=?, is_value=?, sp_a1=?, " +
                 "integr_radius=?, arth=?, da_ratio=?, ssi=? WHERE exam_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             setBiomechanicsParams(ps, bio);
             ps.setInt(9, bio.getExamId());
@@ -227,7 +241,7 @@ public class CornealExamDAO {
         } else {
             String sql = "INSERT INTO biomechanical_params (exam_id, ccbi, ctbi, is_value, sp_a1, " +
                     "integr_radius, arth, da_ratio, ssi) VALUES (?,?,?,?,?,?,?,?,?)";
-            try (Connection conn = DatabaseConfig.getConnection();
+            try (Connection conn = dataSource.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 setBiomechanicsParams(ps, bio);
                 ps.executeUpdate();
@@ -237,7 +251,7 @@ public class CornealExamDAO {
 
     public Optional<BiomechanicalParams> findBiomechanicsByExamId(int examId) throws SQLException {
         String sql = "SELECT * FROM biomechanical_params WHERE exam_id=?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, examId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -252,7 +266,7 @@ public class CornealExamDAO {
         String placeholders = examIds.stream().map(id -> "?").collect(Collectors.joining(","));
         String sql = "SELECT * FROM biomechanical_params WHERE exam_id IN (" + placeholders + ")";
         Map<Integer, BiomechanicalParams> map = new HashMap<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             for (int i = 0; i < examIds.size(); i++) {
                 ps.setInt(i + 1, examIds.get(i));

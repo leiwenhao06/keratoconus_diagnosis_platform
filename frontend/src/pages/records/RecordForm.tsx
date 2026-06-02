@@ -16,18 +16,24 @@ export default function RecordForm() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    const payload = {
-      ...values,
-      patientId,
-      visitDate: datePickerToStr(values.visitDate),
-    };
-
     setLoading(true);
     try {
+      const values = await form.validateFields();
+      const payload = {
+        ...values,
+        patientId,
+        visitDate: datePickerToStr(values.visitDate),
+      };
+
       await recordApi.create(payload);
       message.success('病历已创建');
       navigate(`/patients/${patientId}`);
+    } catch (err: any) {
+      if (err?.errorFields) {
+        // Ant Design form validation error - already shown inline
+        return;
+      }
+      // 其他错误已由拦截器处理
     } finally {
       setLoading(false);
     }

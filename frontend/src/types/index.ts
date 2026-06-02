@@ -82,11 +82,17 @@ export interface MedicalImage {
   examId?: number;
   imageType: ImageType;
   eyeSide?: EyeSide;
-  imagePath?: string;
+  imagePath?: string;  // UUID 文件名，如 "a1b2c3d4-xxxx.png"
   imageData?: string;
   fileName?: string;
   fileSize?: number;
   uploadDate?: string;
+}
+
+export interface UploadResult {
+  uuid: string;
+  imageId: string;
+  fileName: string;
 }
 
 // ========== 病历 ==========

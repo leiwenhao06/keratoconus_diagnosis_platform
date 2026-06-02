@@ -3,6 +3,8 @@ package com.cornea.management.controller;
 import com.cornea.management.dto.ApiResponse;
 import com.cornea.management.entity.MedicalRecord;
 import com.cornea.management.service.MedicalRecordService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +16,8 @@ import java.util.Optional;
 @RequestMapping("/api/records")
 public class MedicalRecordController {
 
+    private static final Logger log = LoggerFactory.getLogger(MedicalRecordController.class);
+
     private final MedicalRecordService recordService;
 
     @Autowired
@@ -23,6 +27,7 @@ public class MedicalRecordController {
 
     @PostMapping
     public ApiResponse<MedicalRecord> create(@RequestBody MedicalRecord record) throws SQLException {
+        log.info("Create record request: patientId={}", record.getPatientId());
         return ApiResponse.success("Record created", recordService.createRecord(record));
     }
 
@@ -43,11 +48,13 @@ public class MedicalRecordController {
     @PutMapping("/{id}")
     public ApiResponse<MedicalRecord> update(@PathVariable int id, @RequestBody MedicalRecord record) throws SQLException {
         record.setRecordId(id);
+        log.info("Update record request: recordId={}", id);
         return ApiResponse.success("Record updated", recordService.updateRecord(record));
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable int id) throws SQLException {
+        log.info("Delete record request: recordId={}", id);
         recordService.deleteRecord(id);
         return ApiResponse.success("Record deleted", null);
     }
