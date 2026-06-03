@@ -3,9 +3,16 @@ import { message } from 'antd';
 import type { ApiResponse } from '../types';
 
 const client = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: '',
   timeout: 60000,
-  headers: { 'Content-Type': 'application/json' },
+});
+
+// 为非 FormData 的请求统一设置 JSON Content-Type
+client.interceptors.request.use((config) => {
+  if (!(config.data instanceof FormData)) {
+    config.headers['Content-Type'] = 'application/json';
+  }
+  return config;
 });
 
 client.interceptors.response.use(

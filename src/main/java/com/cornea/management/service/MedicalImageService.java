@@ -24,6 +24,10 @@ public class MedicalImageService {
 
     private static final Logger log = LoggerFactory.getLogger(MedicalImageService.class);
 
+    private static final java.util.Set<String> ALLOWED_EXTENSIONS = java.util.Set.of(
+        ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif"
+    );
+
     private final MedicalImageDAO imageDAO;
     private final PatientService patientService;
 
@@ -63,7 +67,12 @@ public class MedicalImageService {
         String originalName = file.getOriginalFilename();
         String extension = "";
         if (originalName != null && originalName.contains(".")) {
-            extension = originalName.substring(originalName.lastIndexOf("."));
+            extension = originalName.substring(originalName.lastIndexOf(".")).toLowerCase();
+        }
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException(
+                "不支持的文件格式：" + extension + "。允许的格式：jpg, jpeg, png, gif, bmp, webp, tiff"
+            );
         }
         String uuidFileName = UUID.randomUUID().toString() + extension;
 

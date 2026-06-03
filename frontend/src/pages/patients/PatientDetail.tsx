@@ -6,8 +6,7 @@ import {
 } from 'antd';
 import {
   EditOutlined, ArrowLeftOutlined, PlusOutlined,
-  DeleteOutlined, EyeOutlined, ExperimentOutlined,
-  FileTextOutlined, PictureOutlined, InboxOutlined,
+  DeleteOutlined, InboxOutlined,
 } from '@ant-design/icons';
 import { patientApi } from '../../api/patients';
 import { examApi } from '../../api/exams';

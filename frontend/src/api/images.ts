@@ -5,11 +5,12 @@ const BASE = '/api/images';
 
 /** 图片访问 URL（直接用于 <img src>） */
 export const getImageUrl = (uuid: string) =>
-  `http://localhost:8080/api/images/view/${uuid}`;
+  `/api/images/view/${uuid}`;
 
 export const imageApi = {
   /**
    * 文件上传：FormData multipart 方式
+   * 注意：必须让浏览器自动生成 Content-Type（含 boundary），不能手动设置
    */
   uploadFile: (
     file: File,
@@ -25,7 +26,9 @@ export const imageApi = {
     if (eyeSide) formData.append('eyeSide', eyeSide);
     if (examId != null) formData.append('examId', String(examId));
 
-    return client.post<any>('/api/upload', formData).then(r => r?.data?.data as UploadResult);
+    return client.post<any>('/api/upload', formData, {
+      headers: { 'Content-Type': undefined },
+    }).then(r => r?.data?.data as UploadResult);
   },
 
   register: (data: Omit<MedicalImage, 'imageId' | 'uploadDate' | 'imageData'>) =>
