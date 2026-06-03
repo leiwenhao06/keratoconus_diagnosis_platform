@@ -25,9 +25,7 @@ export const imageApi = {
     if (eyeSide) formData.append('eyeSide', eyeSide);
     if (examId != null) formData.append('examId', String(examId));
 
-    return client.post<any>('/api/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then(r => r?.data?.data as UploadResult);
+    return client.post<any>('/api/upload', formData).then(r => r?.data?.data as UploadResult);
   },
 
   register: (data: Omit<MedicalImage, 'imageId' | 'uploadDate' | 'imageData'>) =>

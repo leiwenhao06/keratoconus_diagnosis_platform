@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -57,6 +58,13 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleSpringValidation(Exception e) {
         log.warn("Spring validation error: {}", e.getMessage());
         return ApiResponse.error(400, "请求格式错误，请检查请求参数");
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleMultipartError(MultipartException e) {
+        log.warn("Multipart parse error: {}", e.getMessage());
+        return ApiResponse.error(400, "文件上传请求解析失败，请检查文件格式或重试");
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

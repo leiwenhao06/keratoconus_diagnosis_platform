@@ -262,7 +262,11 @@ export default function ExamForm() {
     >
       <Steps current={currentStep} items={steps.map(s => ({ title: s.title }))} style={{ marginBottom: 24 }} />
       <Form form={form} layout="vertical" style={{ maxWidth: 800 }} initialValues={{ patientId }}>
-        {steps[currentStep].content}
+        {steps.map((step, idx) => (
+          <div key={idx} style={{ display: idx === currentStep ? 'block' : 'none' }}>
+            {step.content}
+          </div>
+        ))}
       </Form>
       <div style={{ marginTop: 24 }}>
         <Space>
