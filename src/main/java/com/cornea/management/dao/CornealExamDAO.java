@@ -142,7 +142,8 @@ public class CornealExamDAO {
                 "cornea_volume, chamber_volume, angle, ac_depth, pupil_dia, iop, lens_th) " +
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            setTopographyParams(ps, topo);
+            ps.setInt(1, topo.getExamId());
+            setTopographyParams(ps, topo, 2);
             ps.executeUpdate();
         }
     }
@@ -156,7 +157,7 @@ public class CornealExamDAO {
                 "cornea_volume=?, chamber_volume=?, angle=?, ac_depth=?, pupil_dia=?, iop=?, lens_th=? WHERE exam_id=?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            setTopographyParams(ps, topo);
+            setTopographyParams(ps, topo, 1);
             ps.setInt(38, topo.getExamId());
             ps.executeUpdate();
         }
@@ -175,7 +176,8 @@ public class CornealExamDAO {
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try (Connection conn = dataSource.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
-                setTopographyParams(ps, topo);
+                ps.setInt(1, topo.getExamId());
+                setTopographyParams(ps, topo, 2);
                 ps.executeUpdate();
             }
         }
@@ -219,7 +221,8 @@ public class CornealExamDAO {
         String sql = "INSERT INTO biomechanical_params (exam_id, ccbi, ctbi, is_value, sp_a1, " +
                 "integr_radius, arth, da_ratio, ssi) VALUES (?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            setBiomechanicsParams(ps, bio);
+            ps.setInt(1, bio.getExamId());
+            setBiomechanicsParams(ps, bio, 2);
             ps.executeUpdate();
         }
     }
@@ -229,7 +232,7 @@ public class CornealExamDAO {
                 "integr_radius=?, arth=?, da_ratio=?, ssi=? WHERE exam_id=?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            setBiomechanicsParams(ps, bio);
+            setBiomechanicsParams(ps, bio, 1);
             ps.setInt(9, bio.getExamId());
             ps.executeUpdate();
         }
@@ -243,7 +246,8 @@ public class CornealExamDAO {
                     "integr_radius, arth, da_ratio, ssi) VALUES (?,?,?,?,?,?,?,?,?)";
             try (Connection conn = dataSource.getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
-                setBiomechanicsParams(ps, bio);
+                ps.setInt(1, bio.getExamId());
+                setBiomechanicsParams(ps, bio, 2);
                 ps.executeUpdate();
             }
         }
@@ -283,9 +287,8 @@ public class CornealExamDAO {
 
     // ==================== Helper ====================
 
-    private void setTopographyParams(PreparedStatement ps, CornealTopography t) throws SQLException {
-        int i = 1;
-        ps.setInt(i++, t.getExamId());
+    private void setTopographyParams(PreparedStatement ps, CornealTopography t, int startIdx) throws SQLException {
+        int i = startIdx;
         setDecimal(ps, i++, t.getFrontRf()); setDecimal(ps, i++, t.getFrontRs()); setDecimal(ps, i++, t.getFrontRm());
         setDecimal(ps, i++, t.getFrontK1()); setDecimal(ps, i++, t.getFrontK2()); setDecimal(ps, i++, t.getFrontKm());
         setDecimal(ps, i++, t.getFrontQVal()); setDecimal(ps, i++, t.getFrontRper()); setDecimal(ps, i++, t.getFrontRmin());
@@ -303,9 +306,8 @@ public class CornealExamDAO {
         setDecimal(ps, i++, t.getPupilDia()); setDecimal(ps, i++, t.getIop()); setDecimal(ps, i++, t.getLensTh());
     }
 
-    private void setBiomechanicsParams(PreparedStatement ps, BiomechanicalParams b) throws SQLException {
-        int i = 1;
-        ps.setInt(i++, b.getExamId());
+    private void setBiomechanicsParams(PreparedStatement ps, BiomechanicalParams b, int startIdx) throws SQLException {
+        int i = startIdx;
         setDecimal(ps, i++, b.getCcbi()); setDecimal(ps, i++, b.getCtbi());
         setDecimal(ps, i++, b.getIsValue()); setDecimal(ps, i++, b.getSpA1());
         setDecimal(ps, i++, b.getIntegrRadius()); setDecimal(ps, i++, b.getArth());

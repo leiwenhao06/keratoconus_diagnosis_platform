@@ -18,10 +18,13 @@ import java.util.Scanner;
  */
 public class Main {
 
-    private static final PatientDAO patientDAO = new PatientDAO();
-    private static final CornealExamDAO examDAO = new CornealExamDAO();
-    private static final MedicalImageDAO imageDAO = new MedicalImageDAO();
-    private static final MedicalRecordDAO recordDAO = new MedicalRecordDAO();
+    private static final DatabaseConfig dbConfig = new DatabaseConfig();
+    private static final javax.sql.DataSource dataSource = dbConfig.dataSource();
+
+    private static final PatientDAO patientDAO = new PatientDAO(dataSource);
+    private static final CornealExamDAO examDAO = new CornealExamDAO(dataSource);
+    private static final MedicalImageDAO imageDAO = new MedicalImageDAO(dataSource);
+    private static final MedicalRecordDAO recordDAO = new MedicalRecordDAO(dataSource);
 
     private static final PatientService patientService = new PatientService(patientDAO);
     private static final CornealExamService examService = new CornealExamService(examDAO, patientService);
@@ -41,7 +44,9 @@ public class Main {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            DatabaseConfig.close();
+            if (dataSource instanceof com.zaxxer.hikari.HikariDataSource) {
+                ((com.zaxxer.hikari.HikariDataSource) dataSource).close();
+            }
         }
     }
 
