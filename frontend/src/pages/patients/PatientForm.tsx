@@ -6,6 +6,9 @@ import dayjs from 'dayjs';
 import { patientApi } from '../../api/patients';
 import { datePickerToStr } from '../../utils/format';
 
+const isFormValidationError = (err: unknown): err is { errorFields: unknown[] } =>
+  typeof err === 'object' && err !== null && 'errorFields' in err;
+
 export default function PatientForm() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -43,8 +46,8 @@ export default function PatientForm() {
         message.success('患者已创建');
       }
       navigate('/patients');
-    } catch (err: any) {
-      if (err?.errorFields) {
+    } catch (err: unknown) {
+      if (isFormValidationError(err)) {
         // Ant Design form validation error - already shown inline
         return;
       }

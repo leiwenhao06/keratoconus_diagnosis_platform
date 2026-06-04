@@ -17,6 +17,14 @@ import {
   GENDER_MAP, EYE_SIDE_MAP, EXAM_TYPE_MAP,
   IMAGE_TYPE_MAP, formatDate, formatDateTime,
 } from '../../utils/format';
+import type { CollapseProps } from 'antd';
+
+const ACCEPTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'];
+const MAX_IMAGE_SIZE = 50 * 1024 * 1024;
+type CollapseItem = NonNullable<CollapseProps['items']>[number];
+
+const compactCollapseItems = (items: Array<CollapseItem | null>) =>
+  items.filter((item): item is CollapseItem => item !== null);
 
 export default function PatientDetail() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -29,7 +37,6 @@ export default function PatientDetail() {
 
   useEffect(() => {
     if (!patientId) return;
-    setLoading(true);
     Promise.all([
       patientApi.getById(patientId).catch(() => null),
       examApi.listByPatient(patientId).catch(() => [] as CornealExam[]),
@@ -81,7 +88,14 @@ export default function PatientDetail() {
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async () => {
-    if (!uploadFile || !patientId) return;
+    if (!uploadFile) {
+      message.warning('请先选择要上传的影像文件');
+      return;
+    }
+    if (!patientId) {
+      message.error('患者信息异常，无法上传影像');
+      return;
+    }
     setUploading(true);
     try {
       await imageApi.uploadFile(uploadFile, patientId, uploadType, uploadEyeSide);
@@ -96,6 +110,10 @@ export default function PatientDetail() {
       setUploading(false);
     }
   };
+
+  const uploadFileList = uploadFile
+    ? [{ uid: uploadFile.name, name: uploadFile.name, status: 'done' as const }]
+    : [];
 
   if (loading) {
     return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
@@ -224,7 +242,7 @@ export default function PatientDetail() {
               )}
 
               {/* Expandable full parameters */}
-              <Collapse ghost items={[
+              <Collapse ghost items={compactCollapseItems([
                 exam.topography ? {
                   key: 'topo',
                   label: '角膜地形图完整参数',
@@ -275,7 +293,7 @@ export default function PatientDetail() {
                     </Descriptions>
                   ),
                 } : null,
-              ].filter(Boolean) as any} />
+              ])} />
             </Card>
           )}
         />
@@ -421,9 +439,20 @@ export default function PatientDetail() {
       >
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <Upload.Dragger
-            accept="image/*"
+            accept={ACCEPTED_IMAGE_EXTENSIONS.join(',')}
             maxCount={1}
+            fileList={uploadFileList}
             beforeUpload={(file) => {
+              const lowerName = file.name.toLowerCase();
+              const extension = lowerName.includes('.') ? lowerName.slice(lowerName.lastIndexOf('.')) : '';
+              if (!ACCEPTED_IMAGE_EXTENSIONS.includes(extension)) {
+                message.error('不支持的文件格式，请上传 PNG、JPG、BMP、GIF、WebP 或 TIFF 图片');
+                return Upload.LIST_IGNORE;
+              }
+              if (file.size > MAX_IMAGE_SIZE) {
+                message.error('图片不能超过 50MB');
+                return Upload.LIST_IGNORE;
+              }
               setUploadFile(file);
               return false; // 阻止自动上传
             }}

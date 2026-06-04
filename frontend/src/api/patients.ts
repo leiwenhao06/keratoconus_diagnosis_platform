@@ -1,23 +1,23 @@
 import client from './client';
-import type { Patient, PatientCreateRequest } from '../types';
+import type { ApiResponse, Patient, PatientCreateRequest } from '../types';
 
 const BASE = '/api/patients';
 
 export const patientApi = {
   create: (data: PatientCreateRequest) =>
-    client.post<any>(BASE, data).then(r => r?.data?.data as Patient),
+    client.post<ApiResponse<Patient>>(BASE, data).then(r => r.data.data as Patient),
 
   list: (name?: string) =>
-    client.get<any>(BASE, { params: name ? { name } : {} })
-      .then(r => r?.data?.data as Patient[]),
+    client.get<ApiResponse<Patient[]>>(BASE, { params: name ? { name } : {} })
+      .then(r => r.data.data ?? []),
 
   getById: (patientId: string) =>
-    client.get<any>(`${BASE}/${patientId}`).then(r => r?.data?.data as Patient),
+    client.get<ApiResponse<Patient>>(`${BASE}/${patientId}`).then(r => r.data.data as Patient),
 
   update: (patientId: string, data: Partial<Patient>) =>
-    client.put<any>(`${BASE}/${patientId}`, { ...data, patientId })
-      .then(r => r?.data?.data as Patient),
+    client.put<ApiResponse<Patient>>(`${BASE}/${patientId}`, { ...data, patientId })
+      .then(r => r.data.data as Patient),
 
   delete: (patientId: string) =>
-    client.delete<any>(`${BASE}/${patientId}`).then(r => r?.data),
+    client.delete<ApiResponse<void>>(`${BASE}/${patientId}`).then(r => r.data),
 };

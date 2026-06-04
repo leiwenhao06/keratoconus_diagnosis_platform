@@ -2,8 +2,10 @@ import axios from 'axios';
 import { message } from 'antd';
 import type { ApiResponse } from '../types';
 
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+
 const client = axios.create({
-  baseURL: '',
+  baseURL: API_BASE_URL,
   timeout: 60000,
 });
 

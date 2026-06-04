@@ -9,6 +9,9 @@ import { datePickerToStr } from '../../utils/format';
 
 const { TextArea } = Input;
 
+const isFormValidationError = (err: unknown): err is { errorFields: unknown[] } =>
+  typeof err === 'object' && err !== null && 'errorFields' in err;
+
 export default function RecordForm() {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
@@ -28,8 +31,8 @@ export default function RecordForm() {
       await recordApi.create(payload);
       message.success('病历已创建');
       navigate(`/patients/${patientId}`);
-    } catch (err: any) {
-      if (err?.errorFields) {
+    } catch (err: unknown) {
+      if (isFormValidationError(err)) {
         // Ant Design form validation error - already shown inline
         return;
       }

@@ -7,6 +7,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { examApi } from '../../api/exams';
 import { datePickerToStr } from '../../utils/format';
+import type { BiomechanicalParams, CornealExam, CornealTopography } from '../../types';
+import type { Dayjs } from 'dayjs';
 
 const EXAM_TYPE_OPTIONS = [
   { label: 'Pentacam 角膜地形图', value: 'Pentacam' },
@@ -14,6 +16,16 @@ const EXAM_TYPE_OPTIONS = [
   { label: 'Corvis VSR', value: 'Corvis_VSR' },
   { label: '其他', value: 'Other' },
 ];
+
+const isFormValidationError = (err: unknown): err is { errorFields: unknown[] } =>
+  typeof err === 'object' && err !== null && 'errorFields' in err;
+
+const pickNumericFields = <T extends object>(values: Record<string, unknown>, fields: readonly string[]) =>
+  Object.fromEntries(
+    fields
+      .filter(field => values[field] != null)
+      .map(field => [field, values[field]])
+  ) as T;
 
 export default function ExamForm() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -25,19 +37,22 @@ export default function ExamForm() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    if (!patientId) {
+      message.error('患者信息异常，无法创建检查记录');
+      return;
+    }
     setLoading(true);
     try {
-      const values = await form.validateFields();
-      const payload: any = {
+      const values = await form.validateFields() as Record<string, unknown>;
+      const payload: Omit<CornealExam, 'examId' | 'createdAt'> = {
         patientId,
-        examDate: datePickerToStr(values.examDate),
-        eyeSide: values.eyeSide,
-        examType: values.examType,
-        diagnosis: values.diagnosis || undefined,
+        examDate: datePickerToStr(values.examDate as Dayjs | null) ?? '',
+        eyeSide: values.eyeSide as CornealExam['eyeSide'],
+        examType: values.examType as CornealExam['examType'],
+        diagnosis: values.diagnosis ? String(values.diagnosis) : undefined,
       };
 
       if (includeTopography) {
-        payload.topography = {};
         const topoFields = [
           'frontRf','frontRs','frontRm','frontK1','frontK2','frontKm',
           'frontQVal','frontRper','frontRmin','frontAxis','frontAstig',
@@ -47,24 +62,19 @@ export default function ExamForm() {
           'thinnestLocatPachyX','thinnestLocatPachyY','kMaxPachyX','kMaxPachyY',
           'corneaVolume','chamberVolume','angle','acDepth','pupilDia','iop','lensTh',
         ];
-        topoFields.forEach(f => {
-          if (values[f] != null) payload.topography[f] = values[f];
-        });
+        payload.topography = pickNumericFields<CornealTopography>(values, topoFields);
       }
 
       if (includeBiomechanics) {
-        payload.biomechanics = {};
         const bioFields = ['ccbi','ctbi','isValue','spA1','integrRadius','arth','daRatio','ssi'];
-        bioFields.forEach(f => {
-          if (values[f] != null) payload.biomechanics[f] = values[f];
-        });
+        payload.biomechanics = pickNumericFields<BiomechanicalParams>(values, bioFields);
       }
 
       await examApi.create(payload);
       message.success('检查记录已创建');
       navigate(`/patients/${patientId}`);
-    } catch (err: any) {
-      if (err?.errorFields) {
+    } catch (err: unknown) {
+      if (isFormValidationError(err)) {
         // Ant Design form validation error - already shown inline
         return;
       }
