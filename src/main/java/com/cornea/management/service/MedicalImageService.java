@@ -92,10 +92,21 @@ public class MedicalImageService {
         image.setFileName(originalName);
         image.setFileSize(file.getSize());
 
-        int id = imageDAO.insert(image);
-        log.info("Image record inserted: imageId={}, uuid={}, patientId={}", id, uuidFileName, patientId);
-        return imageDAO.findById(id)
-                .orElseThrow(() -> new IllegalStateException("Failed to retrieve uploaded image: " + id));
+        try {
+            int id = imageDAO.insert(image);
+            log.info("Image record inserted: imageId={}, uuid={}, patientId={}", id, uuidFileName, patientId);
+            return imageDAO.findById(id)
+                    .orElseThrow(() -> new IllegalStateException("Failed to retrieve uploaded image: " + id));
+        } catch (Exception e) {
+            // 数据库写入失败时，清理已写入磁盘的文件
+            try {
+                Files.deleteIfExists(dest);
+                log.info("Cleaned up orphaned disk file after DB failure: {}", uuidFileName);
+            } catch (IOException cleanupEx) {
+                log.error("Failed to clean up orphaned file: {}", uuidFileName, cleanupEx);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -157,8 +168,21 @@ public class MedicalImageService {
 
     @Transactional(rollbackFor = SQLException.class)
     public void deleteImage(int imageId) throws SQLException {
-        imageDAO.delete(imageId);
-        log.info("Image deleted: imageId={}", imageId);
+        Optional<MedicalImage> imageOpt = imageDAO.findById(imageId);
+        if (imageOpt.isPresent()) {
+            String imagePath = imageOpt.get().getImagePath();
+            imageDAO.delete(imageId);
+            log.info("Image record deleted: imageId={}", imageId);
+            if (imagePath != null && !imagePath.isBlank()) {
+                try {
+                    Path filePath = Paths.get(uploadPath, imagePath);
+                    Files.deleteIfExists(filePath);
+                    log.info("Image file deleted from disk: {}", imagePath);
+                } catch (IOException e) {
+                    log.error("Failed to delete image file from disk: {}, error: {}", imagePath, e.getMessage());
+                }
+            }
+        }
     }
 
     public Optional<MedicalImage> getImageById(int imageId) throws SQLException {
