@@ -1,3 +1,16 @@
+// ========== 认证 ==========
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  username: string;
+  displayName: string;
+  role: string;
+}
+
 // ========== 通用响应 ==========
 export interface ApiResponse<T> {
   code: number;

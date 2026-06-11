@@ -15,6 +15,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 
+import javax.servlet.ServletException;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.NoSuchElementException;
@@ -72,6 +74,13 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleFileTooLarge(MaxUploadSizeExceededException e) {
         log.warn("File upload exceeds size limit: {}", e.getMessage());
         return ApiResponse.error(400, "上传文件过大，请压缩后重试");
+    }
+
+    @ExceptionHandler(ServletException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleServletError(ServletException e) {
+        log.warn("Servlet error (likely multipart parse failure): {}", e.getMessage());
+        return ApiResponse.error(400, "文件上传请求异常，请确认文件格式正确后重试");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

@@ -9,10 +9,13 @@ const client = axios.create({
   timeout: 60000,
 });
 
-// 为非 FormData 的请求统一设置 JSON Content-Type
 client.interceptors.request.use((config) => {
   if (!(config.data instanceof FormData)) {
     config.headers['Content-Type'] = 'application/json';
+  }
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers['Authorization'] = token;
   }
   return config;
 });
@@ -39,7 +42,10 @@ client.interceptors.response.use(
       const msg = error.response?.data?.message || '请求参数错误，请检查输入';
       message.error(msg);
     } else if (error.response?.status === 401) {
-      message.error('未授权，请重新登录');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      message.error('登录已过期，请重新登录');
+      window.location.href = '/login';
     } else if (error.response?.status === 403) {
       message.error('没有权限执行此操作');
     } else if (error.response?.status === 404) {
@@ -48,7 +54,8 @@ client.interceptors.response.use(
       const msg = error.response?.data?.message || '数据冲突，请刷新后重试';
       message.error(msg);
     } else if (error.response?.status === 500) {
-      message.error('服务器内部错误，请稍后重试');
+      const msg = error.response?.data?.message || '服务器内部错误，请稍后重试';
+      message.error(msg);
     } else if (error.response?.status) {
       message.error(`请求失败 (${error.response.status})，请稍后重试`);
     } else {

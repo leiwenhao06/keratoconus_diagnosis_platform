@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import AppLayout from './components/layout/AppLayout';
+import AuthGuard from './components/auth/AuthGuard';
+import LoginPage from './pages/login/LoginPage';
 import PatientList from './pages/patients/PatientList';
 import PatientDetail from './pages/patients/PatientDetail';
 import PatientForm from './pages/patients/PatientForm';
@@ -20,7 +22,10 @@ export default function App() {
     >
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<AppLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={
+            <AuthGuard><AppLayout /></AuthGuard>
+          }>
             <Route index element={<Navigate to="/patients" replace />} />
             <Route path="patients" element={<PatientList />} />
             <Route path="patients/new" element={<PatientForm />} />

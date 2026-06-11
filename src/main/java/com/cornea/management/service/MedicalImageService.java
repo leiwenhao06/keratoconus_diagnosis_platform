@@ -41,6 +41,17 @@ public class MedicalImageService {
     }
 
     /**
+     * 解析上传目录为绝对路径（解决 Windows 下相对路径不一致导致文件写入失败的问题）
+     */
+    private Path getUploadDir() {
+        Path path = Paths.get(uploadPath);
+        if (!path.isAbsolute()) {
+            path = Paths.get(System.getProperty("user.dir")).resolve(path).normalize();
+        }
+        return path.toAbsolutePath();
+    }
+
+    /**
      * 通过 MultipartFile 上传图片，保存到专用文件夹，数据库存储 UUID 编号
      */
     @Transactional(rollbackFor = {SQLException.class, IOException.class})
@@ -58,7 +69,7 @@ public class MedicalImageService {
         }
 
         // 确保上传目录存在
-        Path uploadDir = Paths.get(uploadPath);
+        Path uploadDir = getUploadDir();
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
         }
@@ -76,11 +87,16 @@ public class MedicalImageService {
         }
         String uuidFileName = UUID.randomUUID().toString() + extension;
 
-        // 写入磁盘
-        Path dest = uploadDir.resolve(uuidFileName);
-        file.transferTo(dest.toFile());
-        log.info("Image file saved to disk: {} (original: {}, size: {} bytes)",
-                uuidFileName, originalName, file.getSize());
+        // 使用 NIO Files.copy 写入磁盘（比 transferTo 更可靠，尤其是在 Windows 中文路径下）
+        Path dest = getUploadDir().resolve(uuidFileName);
+        try {
+            Files.copy(file.getInputStream(), dest);
+            log.info("Image file saved to disk: {} (original: {}, size: {} bytes)",
+                    uuidFileName, originalName, file.getSize());
+        } catch (IOException e) {
+            log.error("Failed to write file to disk: {}", dest, e);
+            throw new IOException("文件写入失败: " + dest, e);
+        }
 
         // 数据库记录：image_path 存储 UUID 文件名
         MedicalImage image = new MedicalImage();
@@ -117,9 +133,9 @@ public class MedicalImageService {
         if (imageOpt.isEmpty()) {
             throw new IllegalArgumentException("Image not found: " + uuid);
         }
-        Path filePath = Paths.get(uploadPath, uuid);
+        Path filePath = getUploadDir().resolve(uuid);
         if (!Files.exists(filePath)) {
-            log.error("Image file missing on disk: {}", uuid);
+            log.error("Image file missing on disk: {}", filePath);
             throw new IllegalArgumentException("Image file not found on disk: " + uuid);
         }
         return Files.readAllBytes(filePath);
@@ -175,7 +191,7 @@ public class MedicalImageService {
             log.info("Image record deleted: imageId={}", imageId);
             if (imagePath != null && !imagePath.isBlank()) {
                 try {
-                    Path filePath = Paths.get(uploadPath, imagePath);
+                    Path filePath = getUploadDir().resolve(imagePath);
                     Files.deleteIfExists(filePath);
                     log.info("Image file deleted from disk: {}", imagePath);
                 } catch (IOException e) {

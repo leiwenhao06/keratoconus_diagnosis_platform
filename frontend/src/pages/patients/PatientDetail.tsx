@@ -378,10 +378,18 @@ export default function PatientDetail() {
       {images.length === 0 ? (
         <Empty description="暂无影像记录" />
       ) : (
-        <List
-          grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
-          dataSource={images}
-          renderItem={(img) => (
+        <Image.PreviewGroup
+          items={images
+            .filter((img) => img.imagePath)
+            .map((img) => ({
+              src: getImageUrl(img.imagePath!),
+              alt: img.fileName || '',
+            }))}
+        >
+          <List
+            grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
+            dataSource={images}
+            renderItem={(img) => (
             <List.Item>
               <Card
                 size="small"
@@ -405,7 +413,8 @@ export default function PatientDetail() {
                   <Image
                     src={getImageUrl(img.imagePath)}
                     alt={img.fileName || '医学影像'}
-                    style={{ maxHeight: 200, objectFit: 'cover' }}
+                    style={{ maxHeight: 200, objectFit: 'cover', cursor: 'pointer' }}
+                    preview={{ mask: <span>点击查看大图</span> }}
                     fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
                   />
                 ) : (
@@ -425,6 +434,7 @@ export default function PatientDetail() {
             </List.Item>
           )}
         />
+        </Image.PreviewGroup>
       )}
 
       {/* 上传弹窗 */}
