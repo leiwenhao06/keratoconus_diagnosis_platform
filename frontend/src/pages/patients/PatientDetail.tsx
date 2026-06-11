@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import {
   EditOutlined, ArrowLeftOutlined, PlusOutlined,
-  DeleteOutlined, InboxOutlined,
+  DeleteOutlined, InboxOutlined, EyeOutlined,
 } from '@ant-design/icons';
 import { patientApi } from '../../api/patients';
 import { examApi } from '../../api/exams';
@@ -86,6 +86,7 @@ export default function PatientDetail() {
   const [uploadType, setUploadType] = useState<string>('Pentacam');
   const [uploadEyeSide, setUploadEyeSide] = useState<string>('both');
   const [uploading, setUploading] = useState(false);
+  const [previewState, setPreviewState] = useState<{ visible: boolean; current: number }>({ visible: false, current: 0 });
 
   const handleUpload = async () => {
     if (!uploadFile) {
@@ -378,63 +379,85 @@ export default function PatientDetail() {
       {images.length === 0 ? (
         <Empty description="暂无影像记录" />
       ) : (
-        <Image.PreviewGroup
-          items={images
-            .filter((img) => img.imagePath)
-            .map((img) => ({
-              src: getImageUrl(img.imagePath!),
-              alt: img.fileName || '',
-            }))}
-        >
-          <List
-            grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
-            dataSource={images}
-            renderItem={(img) => (
-            <List.Item>
-              <Card
-                size="small"
-                title={
-                  <Space>
-                    <Tag color="purple">{IMAGE_TYPE_MAP[img.imageType] || img.imageType}</Tag>
-                    {img.eyeSide && <Tag>{EYE_SIDE_MAP[img.eyeSide]}</Tag>}
-                  </Space>
-                }
-                extra={
-                  <Popconfirm
-                    title="确认删除此影像？"
-                    onConfirm={() => img.imageId && handleDeleteImage(img.imageId)}
-                    okText="确认" cancelText="取消"
+        (() => {
+          const imagesWithPath = images.filter((img) => img.imagePath);
+          return (
+            <Image.PreviewGroup
+              preview={{
+                visible: previewState.visible,
+                current: previewState.current,
+                onVisibleChange: (visible) => setPreviewState(prev => ({ ...prev, visible })),
+                onChange: (current) => setPreviewState(prev => ({ ...prev, current })),
+              }}
+              items={imagesWithPath.map((img) => ({
+                src: getImageUrl(img.imagePath!),
+                alt: img.fileName || '',
+              }))}
+            >
+              <List
+                grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
+                dataSource={images}
+                renderItem={(img) => (
+                <List.Item>
+                  <Card
+                    size="small"
+                    title={
+                      <Space>
+                        <Tag color="purple">{IMAGE_TYPE_MAP[img.imageType] || img.imageType}</Tag>
+                        {img.eyeSide && <Tag>{EYE_SIDE_MAP[img.eyeSide]}</Tag>}
+                      </Space>
+                    }
+                    extra={
+                      <Space>
+                        {img.imagePath && (
+                          <Button
+                            size="small"
+                            type="text"
+                            icon={<EyeOutlined />}
+                            onClick={() => {
+                              const idx = imagesWithPath.findIndex(i => i.imageId === img.imageId);
+                              if (idx >= 0) setPreviewState({ visible: true, current: idx });
+                            }}
+                          />
+                        )}
+                        <Popconfirm
+                          title="确认删除此影像？"
+                          onConfirm={() => img.imageId && handleDeleteImage(img.imageId)}
+                          okText="确认" cancelText="取消"
+                        >
+                          <Button size="small" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                      </Space>
+                    }
                   >
-                    <Button size="small" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                }
-              >
-                {img.imagePath ? (
-                  <Image
-                    src={getImageUrl(img.imagePath)}
-                    alt={img.fileName || '医学影像'}
-                    style={{ maxHeight: 200, objectFit: 'cover', cursor: 'pointer' }}
-                    preview={{ mask: <span>点击查看大图</span> }}
-                    fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-                  />
-                ) : (
-                  <div style={{
-                    height: 120, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', color: '#bbb', background: '#fafafa',
-                  }}>
-                    暂无预览
-                  </div>
-                )}
-                <div style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
-                  <div>文件名：{img.fileName || '-'}</div>
-                  <div>大小：{img.fileSize != null ? `${(img.fileSize / 1024).toFixed(1)} KB` : '-'}</div>
-                  <div>上传时间：{formatDate(img.uploadDate)}</div>
-                </div>
-              </Card>
-            </List.Item>
-          )}
-        />
-        </Image.PreviewGroup>
+                    {img.imagePath ? (
+                      <Image
+                        src={getImageUrl(img.imagePath)}
+                        alt={img.fileName || '医学影像'}
+                        style={{ maxHeight: 200, objectFit: 'cover', cursor: 'pointer' }}
+                        preview={{ mask: <span>点击查看大图</span> }}
+                        fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                      />
+                    ) : (
+                      <div style={{
+                        height: 120, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', color: '#bbb', background: '#fafafa',
+                      }}>
+                        暂无预览
+                      </div>
+                    )}
+                    <div style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
+                      <div>文件名：{img.fileName || '-'}</div>
+                      <div>大小：{img.fileSize != null ? `${(img.fileSize / 1024).toFixed(1)} KB` : '-'}</div>
+                      <div>上传时间：{formatDate(img.uploadDate)}</div>
+                    </div>
+                  </Card>
+                </List.Item>
+              )}
+            />
+            </Image.PreviewGroup>
+          );
+        })()
       )}
 
       {/* 上传弹窗 */}
